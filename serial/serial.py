@@ -45,6 +45,13 @@ class Serial:
         self.read_filename = os.path.join(PROJECT_ROOT, self.port + '_pfs_rx.serial')
         self.write_filename = os.path.join(PROJECT_ROOT, self.port + '_pfs_tx.serial')
 
+        if not os.path.exists(self.read_filename):
+            with portalocker.Lock(self.read_filename, 'w') as rx:
+                pass
+        if not os.path.exists(self.write_filename):
+            with portalocker.Lock(self.write_filename, 'w') as tx:
+                pass
+
     def close(self):
         if self.is_open:
             self.read_filename = None

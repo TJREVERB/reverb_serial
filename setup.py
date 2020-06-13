@@ -6,7 +6,7 @@ with open("README.rst", "r") as f:
 
 setup(
     name="reverb_serial",
-    version="1.2.1",
+    version="1.2.2",
     license="GPL",
     packages=find_packages(),
     author="tjreverb",

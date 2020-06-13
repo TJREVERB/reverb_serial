@@ -20,5 +20,8 @@ setup(
         "Intended Audience :: Other Audience",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Programming Language :: Python :: 3",
-    ]
+    ],
+    install_requires=[
+      'portalocker',
+    ],
 )

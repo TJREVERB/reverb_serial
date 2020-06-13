@@ -1,10 +1,7 @@
 import os
 from time import time
 
-try:
-    import portalocker
-except:
-    raise ImportError("Run `pip install 'portalocker~=1.7.0'` in the correct virtual environment")
+import portalocker
 
 PROJECT_ROOT = os.path.abspath(os.getcwd())
 if "pfs" not in PROJECT_ROOT:

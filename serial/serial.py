@@ -45,8 +45,8 @@ class Serial:
         r = 't' if self.invert else 'r'
         t = 'r' if self.invert else 't'
 
-        self.read_filename = os.path.join(self.PROJECT_ROOT, self.port + f'_pfs_{r}x.serial'.replace('/', '+'))
-        self.write_filename = os.path.join(self.PROJECT_ROOT, self.port + f'_pfs_{t}x.serial'.replace('/', '+'))
+        self.read_filename = os.path.join(self.PROJECT_ROOT, self.port.replace('/', '+') + f'_pfs_{r}x.serial')
+        self.write_filename = os.path.join(self.PROJECT_ROOT, self.port.replace('/', '+') + f'_pfs_{t}x.serial')
 
         if not os.path.exists(self.read_filename):
             with portalocker.Lock(self.read_filename, 'w') as rx:

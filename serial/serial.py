@@ -17,13 +17,13 @@ class SerialException(Exception):
 
 
 class Serial:
-
     PROJECT_ROOT = os.path.join(PROJECT_ROOT, "pfs-output")
 
-    def __init__(self, port=None, buadrate=9600, timeout=float('inf')):
+    def __init__(self, port=None, buadrate=9600, timeout=float('inf'), invert=False):
         self.port = port
         self.baudrate = buadrate
         self.timeout = timeout
+        self.invert = invert
 
         self.read_filename = None
         self.write_filename = None
@@ -42,8 +42,11 @@ class Serial:
         if self.port is None:
             raise SerialException('Port must be configured before it can be used.')
 
-        self.read_filename = os.path.join(self.PROJECT_ROOT, self.port + '_pfs_rx.serial')
-        self.write_filename = os.path.join(self.PROJECT_ROOT, self.port + '_pfs_tx.serial')
+        r = 't' if self.invert else 'r'
+        t = 'r' if self.invert else 't'
+
+        self.read_filename = os.path.join(self.PROJECT_ROOT, self.port + f'_pfs_{r}x.serial')
+        self.write_filename = os.path.join(self.PROJECT_ROOT, self.port + f'_pfs_{t}x.serial')
 
         if not os.path.exists(self.read_filename):
             with portalocker.Lock(self.read_filename, 'w') as rx:

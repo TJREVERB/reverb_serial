@@ -7,11 +7,9 @@ PROJECT_ROOT = os.path.abspath(os.getcwd())
 if "pfs" not in PROJECT_ROOT:
     print("\033[1;31mThis package must be run within the TJREVERB pFS directory!\033[0;0m")
     print("\033[1;33mAssuming this is being run as a test of the package, output to folder `pfs-output`\033[0;0m")
-    PROJECT_ROOT = os.path.join(PROJECT_ROOT, "pfs-output")
 else:
     while not PROJECT_ROOT.endswith("pfs"):
         PROJECT_ROOT = os.path.dirname(PROJECT_ROOT)
-    PROJECT_ROOT = os.path.join(PROJECT_ROOT, "pfs-output")
 
 
 class SerialException(Exception):
@@ -19,6 +17,8 @@ class SerialException(Exception):
 
 
 class Serial:
+
+    PROJECT_ROOT = os.path.join(PROJECT_ROOT, "pfs-output")
 
     def __init__(self, port=None, buadrate=9600, timeout=float('inf')):
         self.port = port
@@ -28,8 +28,8 @@ class Serial:
         self.read_filename = None
         self.write_filename = None
 
-        if not os.path.exists(PROJECT_ROOT):
-            os.makedirs(PROJECT_ROOT)
+        if not os.path.exists(self.PROJECT_ROOT):
+            os.makedirs(self.PROJECT_ROOT)
 
         if self.port:
             self.open()
@@ -42,8 +42,8 @@ class Serial:
         if self.port is None:
             raise SerialException('Port must be configured before it can be used.')
 
-        self.read_filename = os.path.join(PROJECT_ROOT, self.port + '_pfs_rx.serial')
-        self.write_filename = os.path.join(PROJECT_ROOT, self.port + '_pfs_tx.serial')
+        self.read_filename = os.path.join(self.PROJECT_ROOT, self.port + '_pfs_rx.serial')
+        self.write_filename = os.path.join(self.PROJECT_ROOT, self.port + '_pfs_tx.serial')
 
         if not os.path.exists(self.read_filename):
             with portalocker.Lock(self.read_filename, 'w') as rx:

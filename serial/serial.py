@@ -19,9 +19,9 @@ class SerialException(Exception):
 class Serial:
     PROJECT_ROOT = os.path.join(PROJECT_ROOT, "pfs-output")
 
-    def __init__(self, port=None, buadrate=9600, timeout=float('inf'), invert=False):
+    def __init__(self, port=None, baudrate=9600, timeout=float('inf'), invert=False):
         self.port = port
-        self.baudrate = buadrate
+        self.baudrate = baudrate
         self.timeout = timeout
         self.invert = invert
 

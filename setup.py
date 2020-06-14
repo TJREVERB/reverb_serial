@@ -6,7 +6,7 @@ with open("README.rst", "r") as f:
 
 setup(
     name="reverb_serial",
-    version="1.2.5",
+    version="2.0.0",
     license="GPL",
     packages=find_packages(),
     author="tjreverb",
@@ -20,8 +20,5 @@ setup(
         "Intended Audience :: Other Audience",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Programming Language :: Python :: 3",
-    ],
-    install_requires=[
-      'portalocker',
     ],
 )

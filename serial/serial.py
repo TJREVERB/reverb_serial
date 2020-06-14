@@ -1,15 +1,7 @@
 import os
 from time import time
-
-import portalocker
-
-PROJECT_ROOT = os.path.abspath(os.getcwd())
-if "pfs" not in PROJECT_ROOT:
-    print("\033[1;31mThis package must be run within the TJREVERB pFS directory!\033[0;0m")
-    print("\033[1;33mAssuming this is being run as a test of the package, output to folder `pfs-output`\033[0;0m")
-else:
-    while not PROJECT_ROOT.endswith("pfs"):
-        PROJECT_ROOT = os.path.dirname(PROJECT_ROOT)
+from socket import socket, AF_INET, SOCK_DGRAM
+from random import randint
 
 
 class SerialException(Exception):
@@ -17,109 +9,108 @@ class SerialException(Exception):
 
 
 class Serial:
-    PROJECT_ROOT = os.path.join(PROJECT_ROOT, "pfs-output")
+    UDP_PORT = {
+        '/dev/ttyACM0': 5005,
+        '/dev/serial0': 6005,
+    }
 
-    def __init__(self, port=None, baudrate=9600, timeout=float('inf'), invert=False):
-        self.port = port
-        self.baudrate = baudrate
-        self.timeout = timeout
-        self.invert = invert
+    def __init__(self, port=None, baudrate=9600, timeout=None, invert=False):
+        if port is None:
+            self.name = port
+            self.port = port
+        else:
+            self.name = port
+            self.port = self.UDP_PORT[port] if port in self.UDP_PORT else randint(5000, 600)
 
-        self.read_filename = None
-        self.write_filename = None
+        self.rx = socket(AF_INET, SOCK_DGRAM)
+        if timeout:
+            self.rx.settimeout(timeout)
+        self.tx = socket(AF_INET, SOCK_DGRAM)
+        self.move = 1 if invert else -1
+
+        self.is_open = False
+        self.binded = False
         self.error = False
 
-        if not os.path.exists(self.PROJECT_ROOT):
-            os.makedirs(self.PROJECT_ROOT)
+        self.input_buffer = b''
 
         if self.port:
             self.open()
-
-    @property
-    def is_open(self):
-        return not (self.read_filename is None and self.write_filename is None)
 
     def open(self):
         if self.port is None:
             raise SerialException('Port must be configured before it can be used.')
 
+        if self.is_open:
+            raise SerialException('Port is already open.')
+
         if self.error:
-            raise SerialException(f'Serial port {self.port} has disconnected')
+            raise SerialException(f'Serial port {self.name} has disconnected')
 
-        r = 't' if self.invert else 'r'
-        t = 'r' if self.invert else 't'
+        self.is_open = True
 
-        self.read_filename = os.path.join(self.PROJECT_ROOT, self.port.replace('/', '+') + f'_pfs_{r}x.serial')
-        self.write_filename = os.path.join(self.PROJECT_ROOT, self.port.replace('/', '+') + f'_pfs_{t}x.serial')
-
-        if not os.path.exists(self.read_filename):
-            with portalocker.Lock(self.read_filename, 'w') as rx:
-                pass
-        if not os.path.exists(self.write_filename):
-            with portalocker.Lock(self.write_filename, 'w') as tx:
-                pass
+        if not self.binded:
+            self.binded = True
+            self.rx.bind(('127.0.0.1', self.port - self.move))
 
     def close(self):
         if self.error:
-            raise SerialException(f'Serial port {self.port} has disconnected')
+            raise SerialException(f'Serial port {self.name} has disconnected')
 
-        if self.is_open:
-            self.read_filename = None
-            self.write_filename = None
+        self.is_open = False
 
     def flushInput(self):
         if not self.is_open:
             raise SerialException("Attempting to use a port that is not open")
 
         if self.error:
-            raise SerialException(f'Serial port {self.port} has disconnected')
+            raise SerialException(f'Serial port {self.name} has disconnected')
 
-        with portalocker.Lock(self.read_filename, 'w') as rx:
-            pass
+        self.input_buffer = b''
 
     def flushOutput(self):
         if not self.is_open:
             raise SerialException("Attempting to use a port that is not open")
 
         if self.error:
-            raise SerialException(f'Serial port {self.port} has disconnected')
-
-        with portalocker.Lock(self.write_filename, 'w') as tx:
-            pass
+            raise SerialException(f'Serial port {self.name} has disconnected')
 
     def write(self, message):
         if not self.is_open:
             raise SerialException("Attempting to use a port that is not open")
 
         if self.error:
-            raise SerialException(f'Serial port {self.port} has disconnected')
+            raise SerialException(f'Serial port {self.name} has disconnected')
 
         if type(message) != bytes:
             raise SerialException("Send the serial port bytes")
 
-        with portalocker.Lock(self.write_filename, 'a') as tx:
-            tx.write(message.decode('utf-8'))
+        try:
+            self.tx.sendto(message, ('127.0.0.1', self.port + self.move))
+        except Exception as exception:
+            raise SerialException(str(exception))
 
     def read(self, size=1):
         if not self.is_open:
             raise SerialException("Attempting to use a port that is not open")
 
         if self.error:
-            raise SerialException(f'Serial port {self.port} has disconnected')
+            raise SerialException(f'Serial port {self.name} has disconnected')
 
-        if size > 1:
-            print("\033[1;33mOnly one byte/call with reverb-serial\033[0;0m")
+        if len(self.input_buffer) >= size:
+            r = self.input_buffer[0:size]
+            self.input_buffer = self.input_buffer[size:]
+            return r
 
-        start = time()
-        while time() - start < self.timeout:
-            rx_content = None
-            with portalocker.Lock(self.read_filename, 'r', timeout=self.timeout) as rx:
-                rx_content = rx.read()
+        try:
+            data, address = self.rx.recvfrom(1024)
+            self.input_buffer += data
+            r = self.input_buffer[0:size]
+            self.input_buffer = self.input_buffer[size:]
+            return r
 
-            if rx_content:
-                nb = rx_content[0].encode('utf-8')
-                with portalocker.Lock(self.read_filename, 'w') as rx:
-                    rx.write(rx_content[1:])
-                return nb
+        except Exception as exception:
+            if 'timed out' in str(exception):
+                return b''
 
-        return b''
+            raise SerialException(str(exception))

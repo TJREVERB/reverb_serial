@@ -27,6 +27,7 @@ class Serial:
 
         self.read_filename = None
         self.write_filename = None
+        self.error = False
 
         if not os.path.exists(self.PROJECT_ROOT):
             os.makedirs(self.PROJECT_ROOT)
@@ -42,6 +43,9 @@ class Serial:
         if self.port is None:
             raise SerialException('Port must be configured before it can be used.')
 
+        if self.error:
+            raise SerialException(f'Serial port {self.port} has disconnected')
+
         r = 't' if self.invert else 'r'
         t = 'r' if self.invert else 't'
 
@@ -56,6 +60,9 @@ class Serial:
                 pass
 
     def close(self):
+        if self.error:
+            raise SerialException(f'Serial port {self.port} has disconnected')
+
         if self.is_open:
             self.read_filename = None
             self.write_filename = None
@@ -64,6 +71,9 @@ class Serial:
         if not self.is_open:
             raise SerialException("Attempting to use a port that is not open")
 
+        if self.error:
+            raise SerialException(f'Serial port {self.port} has disconnected')
+
         with portalocker.Lock(self.read_filename, 'w') as rx:
             pass
 
@@ -71,12 +81,18 @@ class Serial:
         if not self.is_open:
             raise SerialException("Attempting to use a port that is not open")
 
+        if self.error:
+            raise SerialException(f'Serial port {self.port} has disconnected')
+
         with portalocker.Lock(self.write_filename, 'w') as tx:
             pass
 
     def write(self, message):
         if not self.is_open:
             raise SerialException("Attempting to use a port that is not open")
+
+        if self.error:
+            raise SerialException(f'Serial port {self.port} has disconnected')
 
         if type(message) != bytes:
             raise SerialException("Send the serial port bytes")
@@ -87,6 +103,9 @@ class Serial:
     def read(self, size=1):
         if not self.is_open:
             raise SerialException("Attempting to use a port that is not open")
+
+        if self.error:
+            raise SerialException(f'Serial port {self.port} has disconnected')
 
         if size > 1:
             print("\033[1;33mOnly one byte/call with reverb-serial\033[0;0m")

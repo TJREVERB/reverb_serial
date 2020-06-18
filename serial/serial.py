@@ -31,6 +31,7 @@ class Serial:
         self.is_open = False
         self.binded = False
         self.error = False
+        self.logging = False
 
         self.input_buffer = b''
 
@@ -86,6 +87,8 @@ class Serial:
             raise SerialException("Send the serial port bytes")
 
         try:
+            if self.logging:
+                print(f"{'pfs' if self.move == -1 else 'hermes'} writing {message}")
             self.tx.sendto(message, ('127.0.0.1', self.port + self.move))
         except Exception as exception:
             raise SerialException(str(exception))
@@ -104,6 +107,8 @@ class Serial:
 
         try:
             data, address = self.rx.recvfrom(1024)
+            if self.logging:
+                print(f"{'pfs' if self.move == -1 else 'hermes'} received {data}")
             self.input_buffer += data
             r = self.input_buffer[0:size]
             self.input_buffer = self.input_buffer[size:]
